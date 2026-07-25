@@ -4,7 +4,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import numpy as np
-
+ 
 # Page configuration
 st.set_page_config(
     page_title="Quote Turnaround Dashboard",
@@ -12,23 +12,23 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
+ 
 # Initialize session state
 if 'quotes_data' not in st.session_state:
     # Sample data for demonstration
     np.random.seed(42)
     dates = pd.date_range(start='2024-01-01', end='2024-12-31', freq='D')
     sample_data = []
-    
+ 
     complexities = ['Low', 'Medium', 'High', 'Very High']
     departments = ['Mechanical', 'Electrical', 'Manufacturing', 'Quality']
     statuses = ['Completed', 'In Progress']
-    
+ 
     for _ in range(100):
         rfq_date = np.random.choice(dates)
         complexity = np.random.choice(complexities)
         dept = np.random.choice(departments)
-        
+ 
         # Turnaround time varies by complexity
         if complexity == 'Low':
             turnaround = np.random.randint(1, 3)
@@ -38,7 +38,7 @@ if 'quotes_data' not in st.session_state:
             turnaround = np.random.randint(7, 14)
         else:
             turnaround = np.random.randint(14, 30)
-        
+ 
         sample_data.append({
             'RFQ_ID': f'RFQ-2024-{np.random.randint(1000, 9999)}',
             'RFQ_Date': rfq_date,
@@ -52,42 +52,42 @@ if 'quotes_data' not in st.session_state:
             'Status': np.random.choice(statuses),
             'Quote_Completion_Date': rfq_date + timedelta(days=turnaround)
         })
-    
+ 
     st.session_state.quotes_data = pd.DataFrame(sample_data)
-
+ 
 # Title and header
 st.title("📊 Quote Turnaround Times Dashboard")
 st.markdown("Standard Manufacturing & Engineering Organization - RFQ Process Tracking")
 st.divider()
-
+ 
 # Sidebar for filters and options
 with st.sidebar:
     st.header("⚙️ Dashboard Controls")
-    
+ 
     # Tab for different views
-    tab_option = st.radio("Select View:", ["Dashboard", "Add New Quote", "Analytics"])
-    
+    tab_option = st.radio("Select View:", ["Dashboard", "Add New Quote", "Analytics", "What-If Analysis"])
+ 
     # Date range filter
     col1, col2 = st.columns(2)
     with col1:
         start_date = st.date_input("Start Date", st.session_state.quotes_data['RFQ_Date'].min().date())
     with col2:
         end_date = st.date_input("End Date", st.session_state.quotes_data['RFQ_Date'].max().date())
-    
+ 
     # Filter by complexity
     selected_complexity = st.multiselect(
         "Filter by Complexity:",
         ['Low', 'Medium', 'High', 'Very High'],
         default=['Low', 'Medium', 'High', 'Very High']
     )
-    
+ 
     # Filter by department
     selected_dept = st.multiselect(
         "Filter by Department:",
         st.session_state.quotes_data['Department'].unique(),
         default=st.session_state.quotes_data['Department'].unique()
     )
-
+ 
 # Apply filters
 filtered_data = st.session_state.quotes_data[
     (st.session_state.quotes_data['RFQ_Date'].dt.date >= start_date) &
@@ -95,129 +95,124 @@ filtered_data = st.session_state.quotes_data[
     (st.session_state.quotes_data['Complexity'].isin(selected_complexity)) &
     (st.session_state.quotes_data['Department'].isin(selected_dept))
 ]
-
+ 
 # --- DASHBOARD TAB ---
 if tab_option == "Dashboard":
     # Key Metrics Row
     st.subheader("📈 Key Metrics")
     col1, col2, col3, col4 = st.columns(4)
-    
+ 
     with col1:
         avg_turnaround = filtered_data['Turnaround_Days'].mean()
         st.metric("Average Turnaround", f"{avg_turnaround:.1f} days")
-    
+ 
     with col2:
         total_quotes = len(filtered_data)
         st.metric("Total Quotes", total_quotes)
-    
+ 
     with col3:
         completed = len(filtered_data[filtered_data['Status'] == 'Completed'])
         st.metric("Completed", completed)
-    
+ 
     with col4:
         in_progress = len(filtered_data[filtered_data['Status'] == 'In Progress'])
         st.metric("In Progress", in_progress)
-    
+ 
     st.divider()
-    
+ 
     # Charts Row 1
     col1, col2 = st.columns(2)
-    
+ 
     with col1:
         st.subheader("⏱️ Turnaround Time by Complexity")
         complexity_data = filtered_data.groupby('Complexity')['Turnaround_Days'].agg(['mean', 'count']).reset_index()
         complexity_data = complexity_data.sort_values('mean', ascending=False)
-        
+ 
         fig_complexity = px.bar(
             complexity_data,
             x='Complexity',
             y='mean',
             color='Complexity',
             title="Average Days by Complexity Level",
-            labels={'mean': 'Average Turnaround (Days)', 'Complexity': 'Complexity Level'},
-            text_position='outside'
+            labels={'mean': 'Average Turnaround (Days)', 'Complexity': 'Complexity Level'}
         )
-        fig_complexity.update_traces(texttemplate='%{text:.1f}')
+        fig_complexity.update_traces(texttemplate='%{y:.1f}', textposition='outside')
         st.plotly_chart(fig_complexity, use_container_width=True)
-    
+ 
     with col2:
         st.subheader("👥 Turnaround Time by Department")
         dept_data = filtered_data.groupby('Department')['Turnaround_Days'].agg(['mean', 'count']).reset_index()
         dept_data = dept_data.sort_values('mean', ascending=False)
-        
+ 
         fig_dept = px.bar(
             dept_data,
             x='Department',
             y='mean',
             color='Department',
             title="Average Days by Department",
-            labels={'mean': 'Average Turnaround (Days)', 'Department': 'Department'},
-            text_position='outside'
+            labels={'mean': 'Average Turnaround (Days)', 'Department': 'Department'}
         )
-        fig_dept.update_traces(texttemplate='%{text:.1f}')
+        fig_dept.update_traces(texttemplate='%{y:.1f}', textposition='outside')
         st.plotly_chart(fig_dept, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Charts Row 2
     col1, col2 = st.columns(2)
-    
+ 
     with col1:
         st.subheader("🔧 Impact: Engineering Review Required")
         eng_data = filtered_data.groupby('Engineering_Required')['Turnaround_Days'].mean().reset_index()
         eng_data['Engineering_Required'] = eng_data['Engineering_Required'].map({True: 'Yes', False: 'No'})
-        
+ 
         fig_eng = px.bar(
             eng_data,
             x='Engineering_Required',
             y='Turnaround_Days',
             color='Engineering_Required',
             title="Impact of Engineering Review on Turnaround Time",
-            labels={'Turnaround_Days': 'Average Days', 'Engineering_Required': 'Engineering Required'},
-            text_position='outside'
+            labels={'Turnaround_Days': 'Average Days', 'Engineering_Required': 'Engineering Required'}
         )
-        fig_eng.update_traces(texttemplate='%{y:.1f}')
+        fig_eng.update_traces(texttemplate='%{y:.1f}', textposition='outside')
         st.plotly_chart(fig_eng, use_container_width=True)
-    
+ 
     with col2:
         st.subheader("📋 Impact: Missing Documentation")
         doc_data = filtered_data.groupby('Missing_Documentation')['Turnaround_Days'].mean().reset_index()
         doc_data['Missing_Documentation'] = doc_data['Missing_Documentation'].map({True: 'Yes', False: 'No'})
-        
+ 
         fig_doc = px.bar(
             doc_data,
             x='Missing_Documentation',
             y='Turnaround_Days',
             color='Missing_Documentation',
             title="Impact of Missing Documentation on Turnaround Time",
-            labels={'Turnaround_Days': 'Average Days', 'Missing_Documentation': 'Missing Documentation'},
-            text_position='outside'
+            labels={'Turnaround_Days': 'Average Days', 'Missing_Documentation': 'Missing Documentation'}
         )
-        fig_doc.update_traces(texttemplate='%{y:.1f}')
+        fig_doc.update_traces(texttemplate='%{y:.1f}', textposition='outside')
         st.plotly_chart(fig_doc, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Charts Row 3
     col1, col2 = st.columns(2)
-    
+ 
     with col1:
         st.subheader("⚡ Impact: Expedite Requests")
         exp_data = filtered_data.groupby('Expedite_Request')['Turnaround_Days'].mean().reset_index()
         exp_data['Expedite_Request'] = exp_data['Expedite_Request'].map({True: 'Yes', False: 'No'})
-        
+ 
         fig_exp = px.bar(
             exp_data,
             x='Expedite_Request',
             y='Turnaround_Days',
             color='Expedite_Request',
             title="Impact of Expedite Requests",
-            labels={'Turnaround_Days': 'Average Days', 'Expedite_Request': 'Expedite Request'},
-            text_position='outside'
+            labels={'Turnaround_Days': 'Average Days', 'Expedite_Request': 'Expedite Request'}
         )
-        fig_exp.update_traces(texttemplate='%{y:.1f}')
+        fig_exp.update_traces(texttemplate='%{y:.1f}', textposition='outside')
         st.plotly_chart(fig_exp, use_container_width=True)
-    
+ 
     with col2:
         st.subheader("📊 Turnaround Time Distribution")
         fig_dist = px.histogram(
@@ -228,14 +223,14 @@ if tab_option == "Dashboard":
             labels={'Turnaround_Days': 'Turnaround (Days)', 'count': 'Number of Quotes'}
         )
         st.plotly_chart(fig_dist, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Trend over time
     st.subheader("📈 Turnaround Time Trend Over Time")
     trend_data = filtered_data.sort_values('RFQ_Date').copy()
     trend_data['Rolling_Avg'] = trend_data['Turnaround_Days'].rolling(window=7, min_periods=1).mean()
-    
+ 
     fig_trend = px.line(
         trend_data,
         x='RFQ_Date',
@@ -244,46 +239,46 @@ if tab_option == "Dashboard":
         labels={'RFQ_Date': 'Date', 'Turnaround_Days': 'Turnaround (Days)'},
         opacity=0.6
     )
-    fig_trend.add_scatter(x=trend_data['RFQ_Date'], y=trend_data['Rolling_Avg'], 
+    fig_trend.add_scatter(x=trend_data['RFQ_Date'], y=trend_data['Rolling_Avg'],
                           mode='lines', name='7-Day Avg', line=dict(color='red', width=3))
     st.plotly_chart(fig_trend, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Data table
     st.subheader("📋 Detailed Quote Data")
     st.dataframe(
-        filtered_data[['RFQ_ID', 'RFQ_Date', 'Complexity', 'Department', 
-                       'Engineering_Required', 'Missing_Documentation', 
+        filtered_data[['RFQ_ID', 'RFQ_Date', 'Complexity', 'Department',
+                       'Engineering_Required', 'Missing_Documentation',
                        'Expedite_Request', 'Turnaround_Days', 'Status']].sort_values('RFQ_Date', ascending=False),
         use_container_width=True,
         hide_index=True
     )
-
+ 
 # --- ADD NEW QUOTE TAB ---
 elif tab_option == "Add New Quote":
     st.subheader("➕ Add New Quote Request")
-    
+ 
     with st.form("new_quote_form"):
         col1, col2 = st.columns(2)
-        
+ 
         with col1:
             rfq_id = st.text_input("RFQ ID", placeholder="RFQ-2024-XXXX")
             rfq_date = st.date_input("RFQ Date")
             complexity = st.selectbox("Complexity Level", ['Low', 'Medium', 'High', 'Very High'])
             department = st.selectbox("Primary Department", ['Mechanical', 'Electrical', 'Manufacturing', 'Quality'])
-        
+ 
         with col2:
             queue_position = st.number_input("Queue Position", min_value=1, step=1)
             engineering_required = st.checkbox("Engineering Review Required")
             missing_documentation = st.checkbox("Missing Documentation")
             expedite_request = st.checkbox("Expedite Request")
-        
+ 
         turnaround_days = st.slider("Estimated Turnaround (Days)", 1, 30, 5)
         status = st.selectbox("Status", ['Completed', 'In Progress'])
-        
+ 
         submitted = st.form_submit_button("Add Quote", use_container_width=True)
-        
+ 
         if submitted:
             if rfq_id:
                 new_quote = {
@@ -306,11 +301,11 @@ elif tab_option == "Add New Quote":
                 st.success(f"Quote {rfq_id} added successfully!")
             else:
                 st.error("Please enter an RFQ ID")
-
+ 
 # --- ANALYTICS TAB ---
 elif tab_option == "Analytics":
     st.subheader("📊 Advanced Analytics")
-    
+ 
     # Summary statistics
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -319,9 +314,9 @@ elif tab_option == "Analytics":
         st.metric("Max Turnaround", f"{filtered_data['Turnaround_Days'].max()} days")
     with col3:
         st.metric("Min Turnaround", f"{filtered_data['Turnaround_Days'].min()} days")
-    
+ 
     st.divider()
-    
+ 
     # Complexity impact analysis
     st.subheader("🎯 Complexity Impact Analysis")
     complexity_analysis = filtered_data.groupby('Complexity').agg({
@@ -329,9 +324,9 @@ elif tab_option == "Analytics":
     }).round(2)
     complexity_analysis.columns = ['Mean', 'Median', 'Std Dev', 'Min', 'Max', 'Count']
     st.dataframe(complexity_analysis, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Department performance
     st.subheader("🏢 Department Performance")
     dept_analysis = filtered_data.groupby('Department').agg({
@@ -340,9 +335,9 @@ elif tab_option == "Analytics":
     }).round(2)
     dept_analysis.columns = ['Avg Turnaround', 'Median', 'Quote Count', '% Eng Required']
     st.dataframe(dept_analysis, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Heatmap: Complexity vs Department
     st.subheader("🔥 Heatmap: Complexity vs Department")
     heatmap_data = filtered_data.pivot_table(
@@ -351,7 +346,7 @@ elif tab_option == "Analytics":
         columns='Department',
         aggfunc='mean'
     )
-    
+ 
     fig_heatmap = px.imshow(
         heatmap_data,
         labels=dict(x="Department", y="Complexity", color="Avg Days"),
@@ -359,12 +354,12 @@ elif tab_option == "Analytics":
         color_continuous_scale="YlOrRd"
     )
     st.plotly_chart(fig_heatmap, use_container_width=True)
-    
+ 
     st.divider()
-    
+ 
     # Factors impact summary
     st.subheader("📊 Factors Impact Summary")
-    
+ 
     factors_impact = {
         'Factor': [
             'Engineering Review Required',
@@ -382,13 +377,13 @@ elif tab_option == "Analytics":
             filtered_data[~filtered_data['Expedite_Request']]['Turnaround_Days'].mean()
         ]
     }
-    
+ 
     factors_df = pd.DataFrame(factors_impact)
     factors_df['Impact (Days)'] = factors_df['With Factor (Days)'] - factors_df['Without Factor (Days)']
     factors_df = factors_df.round(2)
-    
+ 
     st.dataframe(factors_df, use_container_width=True, hide_index=True)
-    
+ 
     fig_impact = px.bar(
         factors_df,
         x='Factor',
@@ -398,3 +393,160 @@ elif tab_option == "Analytics":
         color='Impact (Days)'
     )
     st.plotly_chart(fig_impact, use_container_width=True)
+ 
+# --- WHAT-IF ANALYSIS TAB ---
+elif tab_option == "What-If Analysis":
+    st.subheader("🔮 What-If Scenario Analysis")
+ 
+    # KPI Row - quick context from current filtered dataset
+    st.markdown("#### 📌 Current Dataset Snapshot")
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    with kpi1:
+        st.metric("Avg Turnaround", f"{filtered_data['Turnaround_Days'].mean():.1f} days")
+    with kpi2:
+        st.metric("Fastest Quote", f"{filtered_data['Turnaround_Days'].min()} days")
+    with kpi3:
+        st.metric("Slowest Quote", f"{filtered_data['Turnaround_Days'].max()} days")
+    with kpi4:
+        st.metric("Total Quotes Analyzed", len(filtered_data))
+ 
+    st.divider()
+    st.markdown("Adjust the parameters below to estimate turnaround time for a hypothetical quote.")
+ 
+    col1, col2 = st.columns(2)
+    with col1:
+        wi_complexity = st.selectbox("Complexity Level", ['Low', 'Medium', 'High', 'Very High'], key="wi_complexity")
+        wi_department = st.selectbox("Department", filtered_data['Department'].unique(), key="wi_department")
+    with col2:
+        wi_engineering = st.checkbox("Engineering Review Required", key="wi_engineering")
+        wi_missing_docs = st.checkbox("Missing Documentation", key="wi_missing_docs")
+        wi_expedite = st.checkbox("Expedite Request", key="wi_expedite")
+ 
+    st.divider()
+ 
+    baseline_subset = filtered_data[
+        (filtered_data['Complexity'] == wi_complexity) &
+        (filtered_data['Department'] == wi_department)
+    ]
+    if len(baseline_subset) > 0:
+        base_estimate = baseline_subset['Turnaround_Days'].mean()
+    else:
+        base_estimate = filtered_data[filtered_data['Complexity'] == wi_complexity]['Turnaround_Days'].mean()
+ 
+    def factor_adjustment(column):
+        with_factor = filtered_data[filtered_data[column]]['Turnaround_Days'].mean()
+        without_factor = filtered_data[~filtered_data[column]]['Turnaround_Days'].mean()
+        return with_factor - without_factor if pd.notna(with_factor) and pd.notna(without_factor) else 0
+ 
+    eng_adjustment = factor_adjustment('Engineering_Required') if wi_engineering else 0
+    docs_adjustment = factor_adjustment('Missing_Documentation') if wi_missing_docs else 0
+    expedite_adjustment = factor_adjustment('Expedite_Request') if wi_expedite else 0
+ 
+    predicted_turnaround = max(base_estimate + eng_adjustment + docs_adjustment + expedite_adjustment, 0.5)
+ 
+    # KPI Row - prediction results
+    st.markdown("#### 🎯 Prediction Results")
+    r1, r2, r3 = st.columns(3)
+    with r1:
+        st.metric("Predicted Turnaround", f"{predicted_turnaround:.1f} days")
+    with r2:
+        st.metric("Baseline (Complexity + Dept)", f"{base_estimate:.1f} days")
+    with r3:
+        total_adjustment = eng_adjustment + docs_adjustment + expedite_adjustment
+        st.metric("Total Adjustment", f"{total_adjustment:+.1f} days", delta=f"{total_adjustment:+.1f}")
+ 
+    st.divider()
+ 
+    st.subheader("📈 Factor Contribution Breakdown")
+    breakdown_data = pd.DataFrame({
+        'Factor': ['Baseline', 'Engineering Review', 'Missing Documentation', 'Expedite Request'],
+        'Days': [base_estimate, eng_adjustment, docs_adjustment, expedite_adjustment]
+    })
+    fig_breakdown = px.bar(
+        breakdown_data, x='Factor', y='Days', color='Factor',
+        title="Contribution to Predicted Turnaround Time",
+        labels={'Days': 'Days'}, text_auto='.1f'
+    )
+    st.plotly_chart(fig_breakdown, use_container_width=True)
+ 
+    st.info(
+        f"💡 Based on historical data, a **{wi_complexity}** complexity quote for the "
+        f"**{wi_department}** department is estimated to take **{predicted_turnaround:.1f} days**."
+    )
+ 
+    # --- Analyst Workload & Capacity Planning ---
+    st.divider()
+    st.markdown("#### 👷 Analyst Workload & Capacity Planning")
+ 
+    # Simulate analyst assignment (demo data doesn't track this, so we assign it once and cache it)
+    if 'Assigned_Analyst' not in st.session_state.quotes_data.columns:
+        analyst_names = ['Analyst A', 'Analyst B', 'Analyst C']
+        np.random.seed(7)
+        st.session_state.quotes_data['Assigned_Analyst'] = np.random.choice(
+            analyst_names, size=len(st.session_state.quotes_data)
+        )
+ 
+    workload_data = filtered_data.copy()
+    workload_data['Assigned_Analyst'] = st.session_state.quotes_data.loc[workload_data.index, 'Assigned_Analyst']
+    current_analyst_count = workload_data['Assigned_Analyst'].nunique()
+ 
+    st.markdown("**Current Workload Queue**")
+    queue_summary = workload_data[workload_data['Status'] == 'In Progress'].groupby('Assigned_Analyst').agg(
+        Open_Quotes=('RFQ_ID', 'count'),
+        Avg_Turnaround=('Turnaround_Days', 'mean')
+    ).reset_index()
+    queue_summary['Avg_Turnaround'] = queue_summary['Avg_Turnaround'].round(1)
+    st.dataframe(queue_summary, use_container_width=True, hide_index=True)
+ 
+    fig_queue = px.bar(
+        queue_summary,
+        x='Assigned_Analyst',
+        y='Open_Quotes',
+        color='Assigned_Analyst',
+        title="Current Open Quotes per Analyst",
+        labels={'Open_Quotes': 'Open Quotes', 'Assigned_Analyst': 'Analyst'}
+    )
+    st.plotly_chart(fig_queue, use_container_width=True)
+ 
+    st.divider()
+    st.markdown("**Simulate Adding or Removing Analysts**")
+ 
+    total_open_quotes = len(workload_data[workload_data['Status'] == 'In Progress'])
+    current_avg_turnaround_all = workload_data['Turnaround_Days'].mean()
+ 
+    sim_analyst_count = st.slider(
+        "Number of Analysts",
+        min_value=1,
+        max_value=10,
+        value=int(current_analyst_count) if current_analyst_count > 0 else 3,
+        key="sim_analyst_count"
+    )
+ 
+    current_load_per_analyst = total_open_quotes / current_analyst_count if current_analyst_count > 0 else 0
+    new_load_per_analyst = total_open_quotes / sim_analyst_count if sim_analyst_count > 0 else 0
+ 
+    # Simplified estimate: turnaround scales proportionally with workload per analyst
+    scaling_factor = (new_load_per_analyst / current_load_per_analyst) if current_load_per_analyst > 0 else 1
+    estimated_new_turnaround = current_avg_turnaround_all * scaling_factor
+ 
+    s1, s2, s3 = st.columns(3)
+    with s1:
+        st.metric("Current Quotes per Analyst", f"{current_load_per_analyst:.1f}")
+    with s2:
+        st.metric(
+            "New Quotes per Analyst",
+            f"{new_load_per_analyst:.1f}",
+            delta=f"{new_load_per_analyst - current_load_per_analyst:+.1f}"
+        )
+    with s3:
+        st.metric(
+            "Estimated Avg Turnaround",
+            f"{estimated_new_turnaround:.1f} days",
+            delta=f"{estimated_new_turnaround - current_avg_turnaround_all:+.1f} days"
+        )
+ 
+    st.caption(
+        "⚠️ This is a simplified estimate assuming turnaround time scales proportionally with each analyst's "
+        "open quote workload. Actual results depend on individual analyst efficiency, complexity mix, and "
+        "ramp-up time for new hires."
+    )
