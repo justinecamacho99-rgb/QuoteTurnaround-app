@@ -236,9 +236,9 @@ if tab_option == "Dashboard":
         x='RFQ_Date',
         y='Turnaround_Days',
         title="Quote Turnaround Time Trend (with 7-day rolling average)",
-        labels={'RFQ_Date': 'Date', 'Turnaround_Days': 'Turnaround (Days)'},
-        opacity=0.6
+        labels={'RFQ_Date': 'Date', 'Turnaround_Days': 'Turnaround (Days)'}
     )
+    fig_trend.update_traces(opacity=0.6)
     fig_trend.add_scatter(x=trend_data['RFQ_Date'], y=trend_data['Rolling_Avg'],
                           mode='lines', name='7-Day Avg', line=dict(color='red', width=3))
     st.plotly_chart(fig_trend, use_container_width=True)
